@@ -1,0 +1,25 @@
+{
+  "name": "AIIntegrationPatterns",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "twilio-run",
+    "node": "node server.js",
+    "deploy": "twilio-run deploy"
+  },
+  "dependencies": {
+    "@twilio/runtime-handler": "2.0.0",
+    "twilio": "5.3.2",
+    "twilio-cli": "^5.22.2",
+    "express": "^4.17.1",
+    "ws": "^8.2.3",
+    "dotenv": "^10.0.0"
+  },
+  "devDependencies": {
+    "twilio-run": "^4.0.0"
+  },
+  "engines": {
+    "node": "18"
+  }
+}

@@ -1,0 +1,8 @@
+# This is the local NodeJS server .env file. This is NOT used for Twilio Function
+NODE_PORT=3001
+NODE_SERVER_URL=localhost
+
+# This is the OpenAI API key. It is used by the local NodeJS server
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o
+PROMPT_CONTEXT=twilioVoice

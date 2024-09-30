@@ -1,0 +1,6 @@
+.env
+AIIntegrationPatterns/.nvmrc
+AIIntegrationPatterns/.twilioserverlessrc
+AIIntegrationPatterns/pnpm-lock.yaml
+AIIntegrationPatterns/package-lock.json
+.DS_Store
