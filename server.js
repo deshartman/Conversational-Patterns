@@ -5,6 +5,7 @@ const http = require('http');
 const ExpressWs = require("express-ws");
 const dotenv = require('dotenv');
 const { GptService } = require('./services/GptService');
+const { AIAssistantService } = require('./services/AIAssistantService');
 
 console.log('Loading environment variables...');
 dotenv.config();
@@ -87,6 +88,7 @@ app.ws('/conversation-relay', (ws, req) => {
     console.log('Conversation Relay (Text WebSocket) client connected');
     // Initialise the GptService
     const gptService = new GptService();
+    // const aiAssistantService = new AIAssistantService();
     console.log('GptService initialised, back in server.js');
 
     /**
@@ -104,13 +106,19 @@ app.ws('/conversation-relay', (ws, req) => {
             const message = JSON.parse(data);
             // console.log(`[Conversation Relay] Message received: ${JSON.stringify(message)}`);
 
-
             switch (message.type) {
                 case 'prompt':
-                    // Handle prompt (utterance) message
-                    console.info(`[Conversation Relay] Prompt message received: ${message.voicePrompt}`);
+
+                    // OpenAI Model
+                    console.info(`[Conversation Relay] >>>>>>: ${message.voicePrompt}`);
                     const response = await gptService.generateResponse(message.voicePrompt);
-                    console.info(`[Conversation Relay] Generated response: ${response}`);
+                    console.info(`[Conversation Relay] <<<<<<: ${response}`);
+
+                    // Twilio AI Assistant Model
+                    // console.info(`[Conversation Relay] >>>>>>: ${message.voicePrompt}`);
+                    // const response = await aiAssistantService.generateResponse(message.voicePrompt);
+                    // console.info(`[Conversation Relay] <<<<<<: ${response}`);
+
                     // Send the response back to the WebSocket client
                     ws.send(JSON.stringify({
                         type: 'text',
@@ -120,11 +128,11 @@ app.ws('/conversation-relay', (ws, req) => {
                     break;
                 case 'interrupt':
                     // Handle interrupt message
-                    console.info(`[Conversation Relay] Interrupt message received: ${JSON.stringify(message, null, 4)}`);
+                    console.info(`[Conversation Relay] Interrupt ...... : ${JSON.stringify(message, null, 4)}`);
                     break;
                 case 'dtmf':
                     // Handle DTMF digits. We are just logging them out for now.
-                    console.debug(`[Conversation Relay] DTMF digits received: ${message.digits.digit}`);
+                    console.debug(`[Conversation Relay] DTMF: ${message.digits.digit}`);
                     break;
                 case 'setup':
                     // Handle setup message. Just logging sessionId out for now.
@@ -162,7 +170,7 @@ function startServer(nodePort) {
         console.log(`Server running on port ${nodePort}`);
         console.log(`Webhook URL: http://${nodeServerUrl}:${nodePort}/webhook`);
         console.log(`Transcription Webhook URL: http://${nodeServerUrl}:${nodePort}/transcription`);
-        console.log(`Text WebSocket URL: ws://${nodeServerUrl}:${nodePort}/conversation-relay`);
+        console.log(`Conversation Relay WebSocket URL: ws://${nodeServerUrl}:${nodePort}/conversation-relay`);
         console.log(`Audio WebSocket URL: ws://${nodeServerUrl}:${nodePort}/websocket-audio`);
     }).on('error', (error) => {
         if (error.code === 'EADDRINUSE') {
