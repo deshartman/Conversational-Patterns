@@ -9,15 +9,22 @@ const promptContext = process.env.PROMPT_CONTEXT;
 class GptService extends EventEmitter {
     constructor() {
         super();
-        console.log('Initialising GptService...');
+        /**
+         * Initialise the OpenAI API with the API key. Note this is implicit with the nodejs library. If you want to explicitly set the API key, 
+         * you can do so by passing it as an object to the OpenAI constructor.
+         * 
+         * ```javascript
+         *      const openai = new OpenAI({
+         *          apiKey: process.env.OPENAI_API_KEY
+         *      });
+         * ```
+         */
         this.openai = new OpenAI();
-        console.log('OpenAI initialised');
         // Initialise the OpenAI messages array with the system prompt context
         this.messages = [
             { role: "system", content: promptContexts[promptContext] },
         ];
         this.model = process.env.OPENAI_MODEL;
-        console.log('GptService initialised');
     }
 
     async generateResponse(prompt) {
