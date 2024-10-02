@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "@twilio/runtime-handler": "2.0.0",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "retell-sdk": "^4.7.0",
     "twilio": "5.3.2",
     "twilio-cli": "^5.22.2",
-    "express": "^4.17.1",
-    "ws": "^8.2.3",
-    "dotenv": "^10.0.0"
+    "ws": "^8.2.3"
   },
   "devDependencies": {
     "twilio-run": "^4.0.0"
