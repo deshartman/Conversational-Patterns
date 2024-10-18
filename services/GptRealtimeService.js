@@ -3,10 +3,6 @@ require('dotenv').config();
 const OpenAI = require('openai');
 const WebSocket = require('ws');
 
-
-// Import the Prompt Context you need to use
-const promptContexts = require('../prompts/promptContexts');
-const promptContext = process.env.PROMPT_CONTEXT;
 // Constants
 const VOICE = 'alloy';
 
@@ -22,10 +18,12 @@ const LOG_EVENT_TYPES = [
 ];
 
 class GptRealtimeService extends EventEmitter {
-    constructor() {
+    constructor(promptContext, toolManifest) {
         super();
         this.streamSid = null;
         this.isReady = false;
+        this.promptContext = promptContext;
+        this.toolManifest = toolManifest;
         this.connectToOpenAI();
     }
 
@@ -65,7 +63,7 @@ class GptRealtimeService extends EventEmitter {
                 input_audio_format: 'g711_ulaw',
                 output_audio_format: 'g711_ulaw',
                 voice: VOICE,
-                instructions: promptContext,
+                instructions: this.promptContext,
                 modalities: ["text", "audio"],
                 temperature: 0.8,
             }
