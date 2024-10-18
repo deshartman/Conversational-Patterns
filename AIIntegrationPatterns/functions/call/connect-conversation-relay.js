@@ -26,7 +26,7 @@ exports.handler = function (context, event, callback) {
       <Record />
     </Response>`);
 
-    console.info(`twilioResponse: ${twilioResponse}`);
+    // console.info(`twilioResponse: ${twilioResponse}`);
 
     return callback(null, twilioResponse);
   } catch (error) {

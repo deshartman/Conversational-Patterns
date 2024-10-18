@@ -1,0 +1,130 @@
+{
+    "tools": [
+        {
+            "type": "function",
+            "function": {
+                "name": "get-customer",
+                "description": "Retrieves customer details based on the call information",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "caller": {
+                            "type": "string",
+                            "description": "The phone number of the customer (caller)"
+                        }
+                    },
+                    "required": [
+                        "caller"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "place-call",
+                "description": "Places a call or disconnects an active call based on the provided parameters",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "To": {
+                            "type": "string",
+                            "description": "The number to dial (PSTN number)"
+                        },
+                        "identity": {
+                            "type": "string",
+                            "description": "The client identity to dial"
+                        },
+                        "domain": {
+                            "type": "string",
+                            "description": "The SIP domain to dial"
+                        },
+                        "callerId": {
+                            "type": "string",
+                            "description": "The Caller ID for the call"
+                        },
+                        "callSid": {
+                            "type": "string",
+                            "description": "The SID of an active call to disconnect"
+                        },
+                        "displayName": {
+                            "type": "string",
+                            "description": "The display name for the call (optional)"
+                        },
+                        "From": {
+                            "type": "string",
+                            "description": "The From number for the call (optional)"
+                        }
+                    },
+                    "required": []
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "send-sms",
+                "description": "Sends an SMS message using the Twilio client",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "From": {
+                            "type": "string",
+                            "description": "The recipient's phone number"
+                        },
+                        "message": {
+                            "type": "string",
+                            "description": "The content of the SMS message"
+                        }
+                    },
+                    "required": [
+                        "From",
+                        "message"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "verify-code",
+                "description": "Verifies a provided code against the calling number",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "The verification code to check"
+                        },
+                        "From": {
+                            "type": "string",
+                            "description": "The calling number to verify against"
+                        }
+                    },
+                    "required": [
+                        "From"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "verify-send",
+                "description": "Generates and sends a verification code via SMS",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "phone": {
+                            "type": "string",
+                            "description": "The phone number to send the verification code to"
+                        }
+                    },
+                    "required": [
+                        "phone"
+                    ]
+                }
+            }
+        }
+    ]
+}
