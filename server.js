@@ -5,7 +5,9 @@ const http = require('http');
 const ExpressWs = require("express-ws");
 const dotenv = require('dotenv');
 const { GptService } = require('./services/GptService');
+const { GptRealtimeService } = require('./services/GptRealtimeService');
 const { AIAssistantService } = require('./services/AIAssistantService');
+const WebSocket = require('ws');
 
 console.log('Loading environment variables...');
 dotenv.config();
@@ -16,6 +18,7 @@ const expressWs = ExpressWs(app, server);
 
 const nodePort = process.env.NODE_PORT || 3000;
 const nodeServerUrl = process.env.NODE_SERVER_URL || 'localhost';
+const functionsURL = process.env.TWILIO_FUNCTIONS_URL;
 
 app.use(express.json());
 // Parse URL-encoded bodies
@@ -84,11 +87,30 @@ app.post('/transcription', (req, res) => {
 });
 
 // Conversation Relay (Text WebSocket) connection
-app.ws('/conversation-relay', (ws, req) => {
+app.ws('/conversation-relay', async (ws, req) => {
     console.log('Conversation Relay (Text WebSocket) client connected');
-    // Initialise the GptService
-    const gptService = new GptService();
-    // const aiAssistantService = new AIAssistantService();
+
+    // Fetch the configuration
+    let promptContext, toolManifest;
+    try {
+        // console.log(`[Server] Fetching context and manifest from ${functionsURL}`);
+        const context = await fetch(`${functionsURL}/context.md`);
+        promptContext = await context.text();
+        // console.log(`[Server] Context: ${promptContext}`);
+
+        const manifest = await fetch(`${functionsURL}/toolManifest.json`);
+        toolManifest = await manifest.json(); // Parse JSON response
+        // console.log(`[Server] Manifest: ${JSON.stringify(toolManifest)}`);
+    } catch (error) {
+        console.error('Error fetching context or manifest:', error);
+        ws.close();
+        return;
+    }
+
+    console.log('Fetched context and manifest, back in server.js');
+
+    // Initialise the GptService with the fetched context and manifest
+    const gptService = new GptService(promptContext, toolManifest);
     console.log('GptService initialised, back in server.js');
 
     /**
@@ -105,20 +127,12 @@ app.ws('/conversation-relay', (ws, req) => {
         try {
             const message = JSON.parse(data);
             // console.log(`[Conversation Relay] Message received: ${JSON.stringify(message)}`);
-
             switch (message.type) {
                 case 'prompt':
-
                     // OpenAI Model
                     console.info(`[Conversation Relay] >>>>>>: ${message.voicePrompt}`);
                     const response = await gptService.generateResponse(message.voicePrompt);
                     console.info(`[Conversation Relay] <<<<<<: ${response}`);
-
-                    // Twilio AI Assistant Model
-                    // console.info(`[Conversation Relay] >>>>>>: ${message.voicePrompt}`);
-                    // const response = await aiAssistantService.generateResponse(message.voicePrompt);
-                    // console.info(`[Conversation Relay] <<<<<<: ${response}`);
-
                     // Send the response back to the WebSocket client
                     ws.send(JSON.stringify({
                         type: 'text',
@@ -136,7 +150,7 @@ app.ws('/conversation-relay', (ws, req) => {
                     break;
                 case 'setup':
                     // Handle setup message. Just logging sessionId out for now.
-                    console.debug(`[Conversation Relay] Setup message received: ${message.sessionId}`);
+                    console.debug(`[Conversation Relay] Setup message received: ${message}`);
                     break;
                 default:
                     console.log(`[Conversation Relay] Unknown message type: ${message.type}`);
@@ -151,7 +165,113 @@ app.ws('/conversation-relay', (ws, req) => {
     });
 });
 
-// Audio WebSocket connection
+// Audio Stream Connection
+/**
+ * Twilio establishes a WebSocket connection to your server when a Stream is started.
+ * 
+ * Twilio then sends the following "message" types to your WebSocket server during a Stream:
+ * - Connected
+ * - Start
+ * - Media
+ * - DTMF
+ * - Stop
+ * - Mark ( bidirectional Streams only)
+ * 
+ */
+app.ws('/connect-stream', (ws, req) => {
+    console.log('Connect Stream (Audio WebSocket) client connected');
+
+    // Initialise the GptRealtimeService
+    const gptRealtimeService = new GptRealtimeService();
+    console.log('GptRealtimeService initialised in server.js under connect-stream');
+
+    // Wait for GptRealtimeService to be ready
+    gptRealtimeService.once('ready', () => {
+        console.log('GptRealtimeService is ready');
+    });
+
+    ws.on('open', () => {
+        console.log('WebSocket connection to connect-stream opened');
+    });
+
+    /**
+     * Twilio then sends the following "message" types to your WebSocket server during a Stream:
+     * - Connected
+     * - Start
+     * - Media
+     * - DTMF
+     * - Stop
+     * - Mark ( bidirectional Streams only)*/
+
+    ws.on('message', async (data) => {
+        // console.log('WebSocket message to connect-stream');
+        try {
+            const message = JSON.parse(data);
+            // console.log(`Received event: ${message.event}`);
+
+            switch (message.event) {
+                case 'connected':
+                    console.log('Stream connected:', message);
+                    break;
+                case 'start':
+                    gptRealtimeService.streamSid = message.start.streamSid;
+                    console.log('Incoming stream has started', gptRealtimeService.streamSid);
+                    break;
+                case 'media':
+                    // console.log('Received media:');
+                    // Send media to OpenAI Realtime API
+                    await gptRealtimeService.sendMedia(message.media.payload);
+                    break;
+                case 'dtmf':
+                    console.log('Received DTMF:', message.dtmf);
+                    // Handle DTMF digits
+                    break;
+                case 'stop':
+                    console.log('Stream stopped:', message);
+                    break;
+                case 'mark':
+                    console.log('Received mark:', message.mark);
+                    // Handle mark event
+                    break;
+                default:
+                    console.log(`Unknown message type: ${message.event}`);
+            }
+        } catch (error) {
+            console.error('Error processing connect-stream message:', error, 'Raw message:', data);
+        }
+    });
+
+    ws.on('close', () => {
+        console.log('WebSocket connection to connect-stream closed');
+        gptRealtimeService.close();
+        console.log('Client disconnected.');
+    });
+
+    ws.on('error', (error) => {
+        console.error('WebSocket to connect-stream error:', error);
+    });
+
+    // gptRealtimeService Services //
+
+    // Handle the media event from OpenAI real-time API
+    gptRealtimeService.on('media', (audioDelta) => {
+        // console.log('Sending audio to Twilio:', audioDelta);
+        ws.send(JSON.stringify(audioDelta));
+    });
+
+    // Handle WebSocket close and errors
+    gptRealtimeService.on('close', () => {
+        console.log('Disconnected from the OpenAI Realtime API');
+        ws.close();
+    });
+
+    gptRealtimeService.on('error', (error) => {
+        console.error('Error in the OpenAI WebSocket:', error);
+        ws.close();
+    });
+});
+
+// Generic Audio WebSocket connection
 app.ws('/websocket-audio', (ws, req) => {
     console.log('Audio WebSocket client connected');
 
@@ -171,6 +291,7 @@ function startServer(nodePort) {
         console.log(`Webhook URL: http://${nodeServerUrl}:${nodePort}/webhook`);
         console.log(`Transcription Webhook URL: http://${nodeServerUrl}:${nodePort}/transcription`);
         console.log(`Conversation Relay WebSocket URL: ws://${nodeServerUrl}:${nodePort}/conversation-relay`);
+        console.log(`Conversation Relay WebSocket URL: ws://${nodeServerUrl}:${nodePort}/connect-stream`);
         console.log(`Audio WebSocket URL: ws://${nodeServerUrl}:${nodePort}/websocket-audio`);
     }).on('error', (error) => {
         if (error.code === 'EADDRINUSE') {
