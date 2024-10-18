@@ -24,6 +24,25 @@ app.use(express.json());
 // Parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
 
+// Function to fetch context and manifest
+async function fetchContextAndManifest() {
+    try {
+        // console.log(`[Server] Fetching context and manifest from ${functionsURL}`);
+        const context = await fetch(`${functionsURL}/context.md`);
+        const promptContext = await context.text();
+        // console.log(`[Server] Context: ${promptContext}`);
+
+        const manifest = await fetch(`${functionsURL}/toolManifest.json`);
+        const toolManifest = await manifest.json(); // Parse JSON response
+        // console.log(`[Server] Manifest: ${JSON.stringify(toolManifest)}`);
+
+        return { promptContext, toolManifest };
+    } catch (error) {
+        console.error('Error fetching context or manifest:', error);
+        throw error;
+    }
+}
+
 /**
  * Testing endpoints for the server. echo endpoint and websocket endpoint
  */
@@ -93,21 +112,12 @@ app.ws('/conversation-relay', async (ws, req) => {
     // Fetch the configuration
     let promptContext, toolManifest;
     try {
-        // console.log(`[Server] Fetching context and manifest from ${functionsURL}`);
-        const context = await fetch(`${functionsURL}/context.md`);
-        promptContext = await context.text();
-        // console.log(`[Server] Context: ${promptContext}`);
-
-        const manifest = await fetch(`${functionsURL}/toolManifest.json`);
-        toolManifest = await manifest.json(); // Parse JSON response
-        // console.log(`[Server] Manifest: ${JSON.stringify(toolManifest)}`);
+        ({ promptContext, toolManifest } = await fetchContextAndManifest());
     } catch (error) {
         console.error('Error fetching context or manifest:', error);
         ws.close();
         return;
     }
-
-    console.log('Fetched context and manifest, back in server.js');
 
     // Initialise the GptService with the fetched context and manifest
     const gptService = new GptService(promptContext, toolManifest);
@@ -149,8 +159,31 @@ app.ws('/conversation-relay', async (ws, req) => {
                     console.debug(`[Conversation Relay] DTMF: ${message.digits.digit}`);
                     break;
                 case 'setup':
-                    // Handle setup message. Just logging sessionId out for now.
-                    console.debug(`[Conversation Relay] Setup message received: ${message}`);
+                    /**
+                     * Handle setup message. Just logging sessionId out for now.
+                     * This is the object received from Twilio:
+                     * {
+                            "type": "setup",
+                            "sessionId": "VXxxxx",
+                            "callSid": "CAxxxx",
+                            "parentCallSid": "",
+                            "from": "+614nnnn",
+                            "to": "+612nnnn",
+                            "forwardedFrom": "+612nnnnn",
+                            "callerName": "",
+                            "direction": "inbound",
+                            "callType": "PSTN",
+                            "callStatus": "RINGING",
+                            "accountSid": "ACxxxxxx",
+                            "applicationSid": null
+                        }
+                     */
+                    // 
+                    // console.debug(`[Conversation Relay] Setup message received: ${JSON.stringify(message, null, 4)}`);
+                    // Log out the to and from phone numbers
+                    console.log(`[Conversation Relay] Call from: ${message.from} to: ${message.to}`);
+                    // extract the "from" value and pass it to gptService
+                    gptService.setPhoneNumbers(message.to, message.from);
                     break;
                 default:
                     console.log(`[Conversation Relay] Unknown message type: ${message.type}`);
@@ -178,11 +211,21 @@ app.ws('/conversation-relay', async (ws, req) => {
  * - Mark ( bidirectional Streams only)
  * 
  */
-app.ws('/connect-stream', (ws, req) => {
+app.ws('/connect-stream', async (ws, req) => {
     console.log('Connect Stream (Audio WebSocket) client connected');
 
-    // Initialise the GptRealtimeService
-    const gptRealtimeService = new GptRealtimeService();
+    // Fetch the configuration
+    let promptContext, toolManifest;
+    try {
+        ({ promptContext, toolManifest } = await fetchContextAndManifest());
+    } catch (error) {
+        console.error('Error fetching context or manifest:', error);
+        ws.close();
+        return;
+    }
+
+    // Initialise the GptRealtimeService with the fetched context and manifest
+    const gptRealtimeService = new GptRealtimeService(promptContext, toolManifest);
     console.log('GptRealtimeService initialised in server.js under connect-stream');
 
     // Wait for GptRealtimeService to be ready
