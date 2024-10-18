@@ -123,6 +123,10 @@ app.ws('/conversation-relay', async (ws, req) => {
     const gptService = new GptService(promptContext, toolManifest);
     console.log('GptService initialised, back in server.js');
 
+    // Initialize the AIAssistantService with the fetched context and manifest
+    const aiAssistantService = new AIAssistantService(promptContext, toolManifest);
+    console.log('AIAssistantService initialised, back in server.js');
+
     /**
      * Handle incoming messages on the WebSocket connection.
      * 
