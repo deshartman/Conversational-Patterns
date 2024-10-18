@@ -8,6 +8,7 @@ This set of functions looks at Twilio's AI Integration patterns and how they can
 - [Running Twilio Functions](#running-twilio-functions)
 - [Running the Node.js Server](#running-the-nodejs-server)
 - [Setting Up Multi-Tunnel ngrok](#setting-up-multi-tunnel-ngrok)
+- [Integration of Externalized Functions](#integration-of-externalized-functions)
 - [Patterns Overview](#patterns-overview)
   - [Transcription Pattern](#1-transcription-pattern)
   - [Conversation Relay Pattern](#2-conversation-relay-pattern)
@@ -50,6 +51,13 @@ This project includes a Node.js server that handles webhook and websocket API ca
 1. Ensure you have set up the environment variables in the `.env` file:
    - `NODE_PORT`: The port on which the server will run (default is 3000)
    - `NODE_SERVER_URL`: The URL of the server (default is 'localhost')
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `OPENAI_MODEL`: The OpenAI model to use (e.g., 'gpt-4')
+   - `PROMPT_CONTEXT`: The context for the AI prompt (e.g., 'twilioVoice')
+   - `ACCOUNT_SID`: Your Twilio Account SID
+   - `AUTH_TOKEN`: Your Twilio Auth Token
+   - `AI_ASSISTANT_SID`: Your Twilio AI Assistant SID
+   - `TWILIO_FUNCTIONS_URL`: The URL for your Twilio Functions
 
 2. Start the Node.js server:
    ```bash
@@ -103,6 +111,32 @@ To set up a multi-tunnel ngrok configuration for this project, follow these step
 4. ngrok will display the public URLs for your tunnels. Use these URLs to update your Twilio webhook configurations and any other relevant settings in your project.
 
 Remember to keep the ngrok process running while you're developing and testing your application. The public URLs provided by ngrok will allow external services like Twilio to reach your local development server.
+
+## Integration of Externalized Functions
+
+The project now incorporates externalized functions to enhance the capabilities of the AI service. This integration is managed through the `GptService` class in `services/GptService.js`. Here's an overview of how these components work together:
+
+1. **Context File (`AIIntegrationPatterns/assets/context.md`)**: 
+   This file contains the initial context and instructions for the AI agent. It sets the tone, personality, and knowledge base for the AI, focusing on Twilio's Client Voice SDKs.
+
+2. **Tool Manifest (`AIIntegrationPatterns/assets/toolManifest.json`)**: 
+   This JSON file defines a set of tools (functions) that the AI can use. Each tool has a name, description, and parameters. The available tools include:
+   - `get-customer`: Retrieves customer details based on call information.
+   - `place-call`: Places or disconnects calls.
+   - `send-sms`: Sends SMS messages.
+   - `verify-code`: Verifies a provided code against a calling number.
+   - `verify-send`: Generates and sends a verification code via SMS.
+
+3. **Externalized Functions (`AIIntegrationPatterns/functions/tools/`)**: 
+   These are the actual implementations of the tools defined in the manifest. They are hosted as Twilio Functions and can be called by the AI when needed.
+
+4. **GptService Integration**:
+   - The `GptService` class is initialized with the prompt context and tool manifest.
+   - When generating a response, it sends the conversation history, including the new prompt, to the OpenAI API.
+   - If the AI decides to use a tool, the `GptService` makes a request to the corresponding Twilio Function.
+   - The result of the tool call is then fed back to the AI to generate the final response.
+
+This integration allows the AI to not only provide information based on its training but also to perform actions like retrieving customer data, making calls, sending SMS, and handling verification processes. This significantly enhances the AI's capabilities in handling complex, interactive scenarios in the context of Twilio's voice and messaging services.
 
 ## Patterns Overview
 
@@ -166,13 +200,15 @@ The server integrates with OpenAI's API through the GptService class. This servi
 - Initializes the OpenAI client and sets up the conversation context.
 - Generates responses to user prompts using the OpenAI Chat Completions API.
 - Maintains the conversation history to provide context for each new prompt.
+- Utilizes the externalized functions as tools when needed, enhancing its capabilities.
 
 Key aspects of the OpenAI integration:
 - The OpenAI model and prompt context are configurable through environment variables.
 - The system uses a predefined prompt context to set the initial behavior of the AI.
 - Each user prompt and AI response are added to the conversation history for context.
+- The AI can use tools defined in the toolManifest to perform actions like retrieving customer data or sending SMS.
 
-This setup allows for real-time, bidirectional communication between the Twilio service and your application, enabling complex conversational AI interactions. The integration with OpenAI's API allows for dynamic, context-aware responses tailored to each conversation.
+This setup allows for real-time, bidirectional communication between the Twilio service and your application, enabling complex conversational AI interactions. The integration with OpenAI's API and the externalized functions allows for dynamic, context-aware responses tailored to each conversation, with the ability to perform real-world actions when necessary.
 
 ### 3. Stream Pattern
 
@@ -182,6 +218,28 @@ The Stream pattern allows for real-time audio processing and analysis. Key featu
 - Twilio streams one or two audio streams to a user-defined endpoint via websockets
 - Useful for real-time transcription, passive assistants, and call analysis
 - Supports Speech to Text (STT) and call recording capture
+
+Implementation details:
+
+1. In `server.js`:
+   - The server sets up a WebSocket endpoint at `/connect-stream` to handle incoming audio streams from Twilio.
+   - It initializes the `GptRealtimeService` to process the audio stream and generate responses.
+   - The server handles various WebSocket events such as 'connected', 'start', 'media', 'dtmf', 'stop', and 'mark'.
+   - Audio data received from Twilio is sent to the OpenAI Realtime API via the `GptRealtimeService`.
+   - Responses from the OpenAI API are sent back to Twilio through the WebSocket connection.
+
+2. In `services/GptRealtimeService.js`:
+   - This service manages the connection to the OpenAI Realtime API.
+   - It handles the WebSocket connection to OpenAI, including connection setup, message processing, and error handling.
+   - The service processes incoming audio data and sends it to OpenAI for real-time transcription and response generation.
+   - It emits events with the generated audio responses, which are then sent back to Twilio by the server.
+
+3. In `AIIntegrationPatterns/functions/connect-stream.js`:
+   - This Twilio Function sets up the initial connection for the Stream pattern.
+   - It creates a TwiML response that instructs Twilio to connect the call to the WebSocket endpoint on your server.
+   - The function determines the correct domain to use (either the local development server or the ngrok tunnel) and constructs the WebSocket URL accordingly.
+
+This implementation allows for real-time, bidirectional audio streaming between Twilio and your application, with integration to OpenAI's Realtime API for advanced natural language processing capabilities.
 
 ### 4. Connect Stream Pattern
 
