@@ -4,17 +4,17 @@
             "type": "function",
             "function": {
                 "name": "get-customer",
-                "description": "Retrieves customer details based on the call information",
+                "description": "Retrieves customer details based on the call 'from' information",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "caller": {
+                        "from": {
                             "type": "string",
                             "description": "The phone number of the customer (caller)"
                         }
                     },
                     "required": [
-                        "caller"
+                        "from"
                     ]
                 }
             }
@@ -22,53 +22,12 @@
         {
             "type": "function",
             "function": {
-                "name": "place-call",
-                "description": "Places a call or disconnects an active call based on the provided parameters",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "To": {
-                            "type": "string",
-                            "description": "The number to dial (PSTN number)"
-                        },
-                        "identity": {
-                            "type": "string",
-                            "description": "The client identity to dial"
-                        },
-                        "domain": {
-                            "type": "string",
-                            "description": "The SIP domain to dial"
-                        },
-                        "callerId": {
-                            "type": "string",
-                            "description": "The Caller ID for the call"
-                        },
-                        "callSid": {
-                            "type": "string",
-                            "description": "The SID of an active call to disconnect"
-                        },
-                        "displayName": {
-                            "type": "string",
-                            "description": "The display name for the call (optional)"
-                        },
-                        "From": {
-                            "type": "string",
-                            "description": "The From number for the call (optional)"
-                        }
-                    },
-                    "required": []
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
                 "name": "send-sms",
-                "description": "Sends an SMS message using the Twilio client",
+                "description": "Sends an SMS message using the Twilio REST API",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "From": {
+                        "to": {
                             "type": "string",
                             "description": "The recipient's phone number"
                         },
@@ -78,7 +37,7 @@
                         }
                     },
                     "required": [
-                        "From",
+                        "to",
                         "message"
                     ]
                 }
@@ -96,13 +55,14 @@
                             "type": "string",
                             "description": "The verification code to check"
                         },
-                        "From": {
+                        "from": {
                             "type": "string",
                             "description": "The calling number to verify against"
                         }
                     },
                     "required": [
-                        "From"
+                        "code",
+                        "from"
                     ]
                 }
             }
@@ -111,7 +71,7 @@
             "type": "function",
             "function": {
                 "name": "verify-send",
-                "description": "Generates and sends a verification code via SMS",
+                "description": "Generates and sends a verification code via SMS to the phone number provided",
                 "parameters": {
                     "type": "object",
                     "properties": {
