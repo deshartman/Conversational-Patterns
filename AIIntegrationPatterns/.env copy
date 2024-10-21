@@ -1,0 +1,12 @@
+# This is the Twilio Functions .env file. This is NOT used by the local NodeJS server
+ACCOUNT_SID=
+AUTH_TOKEN=
+
+SIP_DOMAIN_URI=
+NGOK_DOMAIN_URI=
+
+# RetellAI keys
+RETELL_API_KEY=
+RETELL_AGENT_ID=
+RETELL_ENDPOINT=
+

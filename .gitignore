@@ -4,3 +4,5 @@ AIIntegrationPatterns/.twilioserverlessrc
 AIIntegrationPatterns/pnpm-lock.yaml
 AIIntegrationPatterns/package-lock.json
 .DS_Store
+package-lock.json
+single-server.js

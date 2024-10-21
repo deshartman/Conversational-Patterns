@@ -5,9 +5,14 @@ NODE_SERVER_URL=localhost
 # This is the OpenAI API key. It is used by the local NodeJS server
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o
-PROMPT_CONTEXT=twilioVoice
+OPENAI_REALTIME_URL=api.openai.com/v1/realtime
 
 # AI Assistant keys
 ACCOUNT_SID=
 AUTH_TOKEN=
 AI_ASSISTANT_SID=
+
+# Twilio Functions
+TWILIO_FUNCTIONS_URL=https://
+
+
