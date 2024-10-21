@@ -3,7 +3,7 @@ exports.handler = async function (context, event, callback) {
 
   try {
     // Extract phone-number from the event object
-    let caller = event.caller;
+    let caller = event.from;
     if (!caller) {
       throw new Error('phone-number is missing from the event object');
     }
