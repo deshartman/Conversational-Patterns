@@ -14,6 +14,18 @@ class GptService extends EventEmitter {
         ];
         // Ensure toolManifest is in the correct format
         this.toolManifest = toolManifest.tools || [];
+        this.phoneNumber = null;
+    }
+
+    // Helper function to set the calling phone number
+    setPhoneNumbers(to, from) {
+        this.twilioNumber = to;
+        this.customerNumber = from;
+
+        // Update this.messages with the phone "to" and the "from" numbers
+        console.log(`[GptService] The "to" number is ${this.twilioNumber} and the "from" number is ${this.customerNumber}`);
+        this.messages.push({ role: 'system', content: `The customer phone number or "from" number is ${this.customerNumber}, which you should use throughout as the reference when calling tools and the number to send SMSs from is: ${this.twilioNumber}` });
+        // TODO: Complete this.
     }
 
     async generateResponse(prompt) {
@@ -30,7 +42,11 @@ class GptService extends EventEmitter {
             });
 
             // Get the content or toolCalls array from the response
-            const toolCalls = response.choices[0]?.message?.tool_calls;
+            const assistantMessage = response.choices[0]?.message;
+            const toolCalls = assistantMessage?.tool_calls;
+
+            // Add the assistant's message to this.messages
+            this.messages.push(assistantMessage);
 
             // The response will be the use of a Tool or just a Response. If the toolCalls array is empty, then it is just a response
             if (toolCalls && toolCalls.length > 0) { // If the toolCalls array is not empty, then it is a Tool
@@ -47,6 +63,9 @@ class GptService extends EventEmitter {
                         },
                         body: toolCall.function.arguments,
                     });
+
+                    // Log the content type of the response
+                    console.log(`[GptService] Response content type: ${functionResponse.headers.get("content-type")}`);
 
                     // Now take the result and pass it back to the LLM as a tool response
                     const toolResult = await functionResponse.json();
@@ -73,11 +92,11 @@ class GptService extends EventEmitter {
 
             } else {
                 // If the toolCalls array is empty, then it is just a response
-                const responseContent = response.choices[0]?.message?.content || "";
+                const responseContent = assistantMessage?.content || "";
 
                 // console.log(`[GptService] Response: ${responseContent}`);
                 // Get the role of the response
-                const responseRole = response.choices[0].message.role;
+                const responseRole = assistantMessage.role;
                 // Add the response to the this.messages array
                 this.messages.push({ role: responseRole, content: responseContent });
                 return responseContent;

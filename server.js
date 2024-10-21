@@ -65,7 +65,10 @@ app.ws("/test-socket", (ws, req) => {
 /**
  * Endpoints for the AI Integration Patterns
  * - Webhook endpoint
- * - Text WebSocket connection
+ * - transcription endpoint
+ * - Conversation Relay (Text WebSocket) connection
+ * - Audio Stream Connection
+ * - Generic Audio WebSocket connection
  */
 
 // Webhook endpoint
@@ -123,10 +126,6 @@ app.ws('/conversation-relay', async (ws, req) => {
     const gptService = new GptService(promptContext, toolManifest);
     console.log('GptService initialised, back in server.js');
 
-    // Initialize the AIAssistantService with the fetched context and manifest
-    const aiAssistantService = new AIAssistantService(promptContext, toolManifest);
-    console.log('AIAssistantService initialised, back in server.js');
-
     /**
      * Handle incoming messages on the WebSocket connection.
      * 
@@ -140,7 +139,7 @@ app.ws('/conversation-relay', async (ws, req) => {
     ws.on('message', async (data) => {
         try {
             const message = JSON.parse(data);
-            // console.log(`[Conversation Relay] Message received: ${JSON.stringify(message)}`);
+            console.log(`[Conversation Relay] Message received: ${JSON.stringify(message)}`);
             switch (message.type) {
                 case 'prompt':
                     // OpenAI Model
@@ -182,12 +181,12 @@ app.ws('/conversation-relay', async (ws, req) => {
                             "applicationSid": null
                         }
                      */
-                    // 
                     // console.debug(`[Conversation Relay] Setup message received: ${JSON.stringify(message, null, 4)}`);
                     // Log out the to and from phone numbers
-                    console.log(`[Conversation Relay] Call from: ${message.from} to: ${message.to}`);
+                    console.log(`[Conversation Relay] Setup message. Call from: ${message.from} to: ${message.to}`);
                     // extract the "from" value and pass it to gptService
                     gptService.setPhoneNumbers(message.to, message.from);
+                    // Greet the user
                     break;
                 default:
                     console.log(`[Conversation Relay] Unknown message type: ${message.type}`);

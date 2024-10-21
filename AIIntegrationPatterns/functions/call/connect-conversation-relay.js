@@ -21,16 +21,16 @@ exports.handler = function (context, event, callback) {
       .setBody(`
     <Response>
       <Connect>
-        <Voxray url="wss://${domain}/conversation-relay" voice="en-AU-Standard-A" dtmfDetection="true" interruptByDtmf="true" />
+        <Voxray url="wss://${domain}/conversation-relay" voice="en-AU-Standard-A" welcomeGreeting="Hi there. How can I help?" dtmfDetection="true" interruptByDtmf="true" />
       </Connect>
       <Record />
     </Response>`);
 
-    // console.info(`twilioResponse: ${twilioResponse}`);
+    console.info(`Conversation Relay called and twilioResponse: ${JSON.stringify(twilioResponse, null, 4)}`);
 
     return callback(null, twilioResponse);
   } catch (error) {
     console.error(error);
-    return callback(`Transcription creation error: ${error}`);
+    return callback(`Conversation Relay error: ${error}`);
   }
 };
