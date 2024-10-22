@@ -96,10 +96,17 @@ class GptService extends EventEmitter {
 
                 // console.log(`[GptService] Response: ${responseContent}`);
                 // Get the role of the response
-                const responseRole = assistantMessage.role;
+                // const responseRole = assistantMessage.role;
                 // Add the response to the this.messages array
-                this.messages.push({ role: responseRole, content: responseContent });
-                return responseContent;
+                this.messages.push({
+                    role: "assistant",
+                    content: responseContent
+                });
+                // Remove all special characters from the responseContent
+                // const sanitizedResponseContent = responseContent.replace(/[^a-zA-Z ]/g, '') + ".";
+                // return sanitizedResponseContent;
+                return responseContent
+
             }
 
         } catch (error) {
