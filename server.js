@@ -150,7 +150,7 @@ app.ws('/conversation-relay', async (ws, req) => {
                     ws.send(JSON.stringify({
                         type: 'text',
                         token: response,
-                        last: false
+                        last: true   // Indicate that this is the last message in the sequence and Twilio can perform TTS
                     }));
                     break;
                 case 'interrupt':
