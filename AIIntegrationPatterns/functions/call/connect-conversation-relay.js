@@ -21,7 +21,7 @@ exports.handler = function (context, event, callback) {
       .setBody(`
     <Response>
       <Connect>
-        <Voxray url="wss://${domain}/conversation-relay" voice="en-AU-Standard-A" welcomeGreeting="Hi there. How can I help?" dtmfDetection="true" interruptByDtmf="true" />
+        <Voxray url="wss://${domain}/conversation-relay" voice="en-AU-Standard-A" dtmfDetection="true" interruptByDtmf="true" />
       </Connect>
       <Record />
     </Response>`);

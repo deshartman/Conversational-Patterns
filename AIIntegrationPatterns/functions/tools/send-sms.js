@@ -6,9 +6,9 @@ exports.handler = async function (context, event, callback) {
   try {
     // send an SMS using the Twilio client
     const message = await client.messages.create({
-      to: event.From,
-      from: context.MY_PHONE_NUMBER,
-      body: event.message
+      to: "+61401277115",
+      from: "+61485871044",
+      body: "Hello there"
     });
     return callback(null, `Message: ${event.message} sent to ${event.From}`);
   } catch (error) {

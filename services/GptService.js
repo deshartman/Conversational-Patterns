@@ -28,9 +28,12 @@ class GptService extends EventEmitter {
         // TODO: Complete this.
     }
 
-    async generateResponse(prompt) {
+    async generateResponse(role = 'user', prompt) {
+        // console.log(`[GptService] Generating response for role: ${role} with prompt: ${prompt}`);
         // Add the prompt as role user to the existing this.messages array
-        this.messages.push({ role: 'user', content: prompt });
+        this.messages.push({ role: role, content: prompt });
+
+        // console.log(`[GptService] Messages: ${JSON.stringify(this.messages, null, 4)}`);
 
         // Call the OpenAI API to generate a response
         try {
@@ -56,6 +59,9 @@ class GptService extends EventEmitter {
                     console.log(`[GptService] Tool call: ${toolCall.function.name} with arguments: ${toolCall.function.arguments}`);
 
                     // Make the fetch request to the Twilio Functions URL with the tool name as the path and the tool arguments as the body
+                    console.log(`[GptService] Fetching tool: ${toolCall.function.name} at URL: ${functionsURL}/tools/${toolCall.function.name}`);
+
+
                     const functionResponse = await fetch(`${functionsURL}/tools/${toolCall.function.name}`, {
                         method: 'POST',
                         headers: {
@@ -65,7 +71,8 @@ class GptService extends EventEmitter {
                     });
 
                     // Log the content type of the response
-                    console.log(`[GptService] Response content type: ${functionResponse.headers.get("content-type")}`);
+                    // console.log(`[GptService] Response content type: ${functionResponse.headers.get("content-type")}`);
+                    console.log(`[GptService] Response: ${JSON.stringify(functionResponse, null, 4)}`);
 
                     // Now take the result and pass it back to the LLM as a tool response
                     const toolResult = await functionResponse.json();

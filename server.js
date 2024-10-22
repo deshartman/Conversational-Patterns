@@ -137,6 +137,7 @@ app.ws('/conversation-relay', async (ws, req) => {
      * 
      */
     ws.on('message', async (data) => {
+        let gptResponse = "";
         try {
             const message = JSON.parse(data);
             console.log(`[Conversation Relay] Message received: ${JSON.stringify(message)}`);
@@ -144,12 +145,12 @@ app.ws('/conversation-relay', async (ws, req) => {
                 case 'prompt':
                     // OpenAI Model
                     console.info(`[Conversation Relay] >>>>>>: ${message.voicePrompt}`);
-                    const response = await gptService.generateResponse(message.voicePrompt);
-                    console.info(`[Conversation Relay] <<<<<<: ${response}`);
+                    gptResponse = await gptService.generateResponse('user', message.voicePrompt);
+                    console.info(`[Conversation Relay] <<<<<<: ${gptResponse}`);
                     // Send the response back to the WebSocket client
                     ws.send(JSON.stringify({
                         type: 'text',
-                        token: response,
+                        token: gptResponse,
                         last: true   // Indicate that this is the last message in the sequence and Twilio can perform TTS
                     }));
                     break;
@@ -186,7 +187,31 @@ app.ws('/conversation-relay', async (ws, req) => {
                     console.log(`[Conversation Relay] Setup message. Call from: ${message.from} to: ${message.to}`);
                     // extract the "from" value and pass it to gptService
                     gptService.setPhoneNumbers(message.to, message.from);
-                    // Greet the user
+
+                    // Call the get-customer service via fetch
+                    const getCustomerResponse = await fetch(`${functionsURL}/tools/get-customer`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ from: message.from }),
+                    });
+
+                    // console.log(`[Conversation Relay] Get Customer Response: ${getCustomerResponse}`);
+
+                    // Create a greeting message using the person's name
+                    const customerData = await getCustomerResponse.json();
+                    const customerName = customerData.firstName;
+                    // console.log(`[Conversation Relay] Customer name: ${customerName}`);
+                    const greetingText = `This is the first message and you need to greet the customer with name ${customerName}! Ask them how you can  assist them today?`;
+                    gptResponse = await gptService.generateResponse('system', greetingText);
+                    console.info(`[Conversation Relay] <<<<<<: ${gptResponse}`);
+                    // Send the response back to the WebSocket client
+                    ws.send(JSON.stringify({
+                        type: 'text',
+                        token: gptResponse,
+                        last: true   // Indicate that this is the last message in the sequence and Twilio can perform TTS
+                    }));
                     break;
                 default:
                     console.log(`[Conversation Relay] Unknown message type: ${message.type}`);
