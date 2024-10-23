@@ -57,16 +57,13 @@ class GptService extends EventEmitter {
 
                 // The toolCalls array will contain the tool name and the response content
                 for (const toolCall of toolCalls) {
-                    console.log(`[GptService] Tool call: ${toolCall.function.name} with arguments: ${toolCall.function.arguments}`);
-
                     // Make the fetch request to the Twilio Functions URL with the tool name as the path and the tool arguments as the body
                     console.log(`[GptService] Fetching tool: ${toolCall.function.name} at URL: ${functionsURL}/tools/${toolCall.function.name}`);
 
-                    //////////
-
                     // Check if the tool call is for the 'liveAgentHandoff' function
-                    if (toolCall.function.name === "transfer-to-agent") {
-                        console.log(`[GptService] Transfer to agent tool call: ${toolCall.function.name}`);
+                    // NOTE: This tool never gets executed, only referenced in the Manifest.
+                    if (toolCall.function.name === "live-agent-handoff") {
+                        console.log(`[GptService] Live Agent Handoff tool call: ${toolCall.function.name}`);
                         const responseContent =
                         {
                             type: "end",
@@ -90,7 +87,6 @@ class GptService extends EventEmitter {
                         });
 
                         // Log the content type of the response
-                        // console.log(`[GptService] Response content type: ${functionResponse.headers.get("content-type")}`);
                         console.log(`[GptService] Response: ${JSON.stringify(functionResponse, null, 4)}`);
 
                         // Now take the result and pass it back to the LLM as a tool response
@@ -130,9 +126,7 @@ class GptService extends EventEmitter {
                 // If the toolCalls array is empty, then it is just a response
                 const content = assistantMessage?.content || "";
 
-                // console.log(`[GptService] Response: ${responseContent}`);
                 // Get the role of the response
-                // const responseRole = assistantMessage.role;
                 // Add the response to the this.messages array
                 this.messages.push({
                     role: "assistant",
@@ -147,9 +141,7 @@ class GptService extends EventEmitter {
                 };
 
                 return responseContent
-
             }
-
         } catch (error) {
             console.error('Error in GptService:', error);
             throw error;
