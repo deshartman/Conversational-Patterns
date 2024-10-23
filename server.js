@@ -27,7 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 // Function to fetch context and manifest
 async function fetchContextAndManifest() {
     try {
-        // console.log(`[Server] Fetching context and manifest from ${functionsURL}`);
+        console.log(`[Server] Fetching context and manifest from ${functionsURL}`);
         const context = await fetch(`${functionsURL}/context.md`);
         const promptContext = await context.text();
         // console.log(`[Server] Context: ${promptContext}`);
@@ -140,19 +140,15 @@ app.ws('/conversation-relay', async (ws, req) => {
         let gptResponse = "";
         try {
             const message = JSON.parse(data);
-            console.log(`[Conversation Relay] Message received: ${JSON.stringify(message)}`);
+            console.log(`[Conversation Relay] Message received: ${JSON.stringify(message, null, 4)}`);
             switch (message.type) {
                 case 'prompt':
                     // OpenAI Model
                     console.info(`[Conversation Relay] >>>>>>: ${message.voicePrompt}`);
                     gptResponse = await gptService.generateResponse('user', message.voicePrompt);
-                    console.info(`[Conversation Relay] <<<<<<: ${gptResponse}`);
+                    console.info(`[Conversation Relay] 2) JSON <<<<<<: ${JSON.stringify(gptResponse, null, 4)}`);
                     // Send the response back to the WebSocket client
-                    ws.send(JSON.stringify({
-                        type: 'text',
-                        token: gptResponse,
-                        last: true   // Indicate that this is the last message in the sequence and Twilio can perform TTS
-                    }));
+                    ws.send(JSON.stringify(gptResponse));
                     break;
                 case 'interrupt':
                     // Handle interrupt message
@@ -184,9 +180,9 @@ app.ws('/conversation-relay', async (ws, req) => {
                      */
                     // console.debug(`[Conversation Relay] Setup message received: ${JSON.stringify(message, null, 4)}`);
                     // Log out the to and from phone numbers
-                    console.log(`[Conversation Relay] Setup message. Call from: ${message.from} to: ${message.to}`);
+                    console.log(`[Conversation Relay] Setup message. Call from: ${message.from} to: ${message.to} with call SID: ${message.callSid}`);
                     // extract the "from" value and pass it to gptService
-                    gptService.setPhoneNumbers(message.to, message.from);
+                    gptService.setCallParameters(message.to, message.from, message.callSid);
 
                     // Call the get-customer service via fetch
                     const getCustomerResponse = await fetch(`${functionsURL}/tools/get-customer`, {
@@ -203,19 +199,16 @@ app.ws('/conversation-relay', async (ws, req) => {
                     const customerData = await getCustomerResponse.json();
                     const customerName = customerData.firstName;
                     // console.log(`[Conversation Relay] Customer name: ${customerName}`);
-                    const greetingText = `This is the first message and you need to greet the customer with name ${customerName}! Ask them how you can  assist them today?`;
+                    const greetingText = `Greet the customer with name ${customerName} in a friendly manner. Do not constantly use their name, but drop it in occasionally. Tell them that you have to fist verify their details before you can proceed to ensure confidentiality of the conversation.`;
                     gptResponse = await gptService.generateResponse('system', greetingText);
-                    console.info(`[Conversation Relay] <<<<<<: ${gptResponse}`);
+                    console.info(`[Conversation Relay] Setup <<<<<<: ${JSON.stringify(gptResponse, null, 4)}`);
                     // Send the response back to the WebSocket client
-                    ws.send(JSON.stringify({
-                        type: 'text',
-                        token: gptResponse,
-                        last: true   // Indicate that this is the last message in the sequence and Twilio can perform TTS
-                    }));
+                    ws.send(JSON.stringify(gptResponse));
                     break;
                 default:
                     console.log(`[Conversation Relay] Unknown message type: ${message.type}`);
             };
+
         } catch (error) {
             console.error('Error in Conversation Relay message handling:', error);
         }

@@ -18,13 +18,14 @@ class GptService extends EventEmitter {
     }
 
     // Helper function to set the calling phone number
-    setPhoneNumbers(to, from) {
+    setCallParameters(to, from, callSid) {
         this.twilioNumber = to;
         this.customerNumber = from;
+        this.callSid = callSid;
 
         // Update this.messages with the phone "to" and the "from" numbers
-        console.log(`[GptService] The "to" number is ${this.twilioNumber} and the "from" number is ${this.customerNumber}`);
-        this.messages.push({ role: 'system', content: `The customer phone number or "from" number is ${this.customerNumber}, which you should use throughout as the reference when calling tools and the number to send SMSs from is: ${this.twilioNumber}` });
+        console.log(`[GptService] Call to: ${this.twilioNumber} from: ${this.customerNumber} with call SID: ${this.callSid}`);
+        this.messages.push({ role: 'system', content: `The customer phone number or "from" number is ${this.customerNumber}, the callSid is ${this.callSid} and the number to send SMSs from is: ${this.twilioNumber}. Use this information throughout as the reference when calling any of the tools. Specifically use the callSid when you use the "transfer-to-agent" tool to transfer the call to the agent` });
         // TODO: Complete this.
     }
 
@@ -61,45 +62,73 @@ class GptService extends EventEmitter {
                     // Make the fetch request to the Twilio Functions URL with the tool name as the path and the tool arguments as the body
                     console.log(`[GptService] Fetching tool: ${toolCall.function.name} at URL: ${functionsURL}/tools/${toolCall.function.name}`);
 
+                    //////////
 
-                    const functionResponse = await fetch(`${functionsURL}/tools/${toolCall.function.name}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: toolCall.function.arguments,
-                    });
+                    // Check if the tool call is for the 'liveAgentHandoff' function
+                    if (toolCall.function.name === "transfer-to-agent") {
+                        console.log(`[GptService] Transfer to agent tool call: ${toolCall.function.name}`);
+                        const responseContent =
+                        {
+                            type: "end",
+                            handoffData: JSON.stringify({   // TODO: Why does this have to be stringified?
+                                reasonCode: "live-agent-handoff",
+                                reason: "Reason for the handoff",
+                                conversationSummary: "handing over to agent TODO: Summary of the conversation",
+                            })
+                        };
 
-                    // Log the content type of the response
-                    // console.log(`[GptService] Response content type: ${functionResponse.headers.get("content-type")}`);
-                    console.log(`[GptService] Response: ${JSON.stringify(functionResponse, null, 4)}`);
+                        // this.messages.push({ role: 'assistant', content: responseContent });
+                        console.log(`[GptService] Transfer to agent response: ${JSON.stringify(responseContent, null, 4)}`);
+                        return responseContent;
+                    } else {
+                        const functionResponse = await fetch(`${functionsURL}/tools/${toolCall.function.name}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: toolCall.function.arguments,
+                        });
 
-                    // Now take the result and pass it back to the LLM as a tool response
-                    const toolResult = await functionResponse.json();
+                        // Log the content type of the response
+                        // console.log(`[GptService] Response content type: ${functionResponse.headers.get("content-type")}`);
+                        console.log(`[GptService] Response: ${JSON.stringify(functionResponse, null, 4)}`);
 
-                    // console.log(`[GptService] Tool response: ${toolCall.response}`);
-                    // Add the tool call to the this.messages array
-                    this.messages.push({
-                        role: "tool",
-                        content: JSON.stringify(toolResult),
-                        tool_call_id: toolCall.id,
-                    });
+                        // Now take the result and pass it back to the LLM as a tool response
+                        const toolResult = await functionResponse.json();
+
+                        // console.log(`[GptService] Tool response: ${toolCall.response}`);
+                        // Add the tool call to the this.messages array
+                        this.messages.push({
+                            role: "tool",
+                            content: JSON.stringify(toolResult),
+                            tool_call_id: toolCall.id,
+                        });
+
+                        // After processing all tool calls, we need to get the final response from the model
+                        const finalResponse = await this.openai.chat.completions.create({
+                            model: this.model,
+                            messages: this.messages,
+                            stream: false,
+                        });
+
+                        const content = finalResponse.choices[0]?.message?.content || "";
+                        this.messages.push({ role: 'assistant', content: content });
+
+                        const responseContent =
+                        {
+                            type: "text",
+                            token: content,
+                            last: true
+                        };
+
+                        console.log(`[GptService] Text Response: ${JSON.stringify(responseContent, null, 4)}`);
+
+                        return responseContent;
+                    }
                 }
-
-                // After processing all tool calls, we need to get the final response from the model
-                const finalResponse = await this.openai.chat.completions.create({
-                    model: this.model,
-                    messages: this.messages,
-                    stream: false,
-                });
-
-                const responseContent = finalResponse.choices[0]?.message?.content || "";
-                this.messages.push({ role: 'assistant', content: responseContent });
-                return responseContent;
-
             } else {
                 // If the toolCalls array is empty, then it is just a response
-                const responseContent = assistantMessage?.content || "";
+                const content = assistantMessage?.content || "";
 
                 // console.log(`[GptService] Response: ${responseContent}`);
                 // Get the role of the response
@@ -107,11 +136,16 @@ class GptService extends EventEmitter {
                 // Add the response to the this.messages array
                 this.messages.push({
                     role: "assistant",
-                    content: responseContent
+                    content: content
                 });
-                // Remove all special characters from the responseContent
-                // const sanitizedResponseContent = responseContent.replace(/[^a-zA-Z ]/g, '') + ".";
-                // return sanitizedResponseContent;
+
+                const responseContent =
+                {
+                    type: "text",
+                    token: content,
+                    last: true
+                };
+
                 return responseContent
 
             }
