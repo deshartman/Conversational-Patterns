@@ -22,30 +22,6 @@
         {
             "type": "function",
             "function": {
-                "name": "send-sms",
-                "description": "Sends an SMS message using the Twilio REST API",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "to": {
-                            "type": "string",
-                            "description": "The recipient's phone number"
-                        },
-                        "message": {
-                            "type": "string",
-                            "description": "The content of the SMS message"
-                        }
-                    },
-                    "required": [
-                        "to",
-                        "message"
-                    ]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
                 "name": "verify-code",
                 "description": "Verifies a provided code against the calling number",
                 "parameters": {
