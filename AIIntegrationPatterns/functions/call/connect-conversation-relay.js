@@ -18,13 +18,15 @@ exports.handler = function (context, event, callback) {
       // Set the Content-Type Header
       .appendHeader('Content-Type', 'application/xml')
       // Set the body of the response to the desired TwiML string
+      // Note the action URL is how the call is handled after the Conversation relay ends the call.
       .setBody(`
     <Response>
-      <Connect>
-        <Voxray url="wss://${domain}/conversation-relay" voice="en-AU-Standard-A" dtmfDetection="true" interruptByDtmf="true" />
+      <Connect action="live-agent-handoff">
+        <Voxray url="wss://${domain}/conversation-relay" voice="Google.en-AU-Neural2-A" dtmfDetection="true" interruptByDtmf="true" />
       </Connect>
       <Record />
-    </Response>`);
+    </Response>`
+      );
 
     console.info(`Conversation Relay called and twilioResponse: ${JSON.stringify(twilioResponse, null, 4)}`);
 
